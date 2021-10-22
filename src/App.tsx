@@ -8,27 +8,19 @@ import {
     YAxis,
 } from 'recharts'
 import { useState } from 'react'
-import divideHasher from './hashers/DivideHasher'
-import Hasher from './hashers/Hasher'
-import multiplyHasher from './hashers/MultiplyHasher'
-import additionConverter from './stringConverters/AdditionConverter'
-import StringConverter from './stringConverters/StringConverter'
-import xorConverter from './stringConverters/XorConverter'
-import testHasher from './testHasher'
+import divideHasher from './HashTable/Hasher/DivideHasher'
+import Hasher from './HashTable/Hasher/Hasher'
+import multiplyHasher from './HashTable/Hasher/MultiplyHasher'
+import testProber from './testHasher'
 
 function App() {
     const [hasher, setHasher] = useState<Hasher>(() => divideHasher)
-    const [converter, setConverter] = useState<StringConverter>(
-        () => additionConverter
-    )
-    const [keyCount, setKeyCount] = useState(100)
-    const [tableSize, setTableSize] = useState(20)
-    const [results, setResults] = useState<number[]>(
-        testHasher(hasher, converter, keyCount, tableSize)
-    )
 
-    const anyKeys = results.filter(v => v > 0)
-    const totalCollisions = keyCount - anyKeys.length
+    const [keyCount, setKeyCount] = useState(200)
+    const [tableSize, setTableSize] = useState(500)
+    const [c, setC] = useState(37)
+    const [d, setD] = useState(3)
+    const [results, setResults] = useState<number[] | undefined>(undefined)
 
     return (
         <div className="App">
@@ -42,7 +34,7 @@ function App() {
                         e.target.checked && setHasher(() => divideHasher)
                     }
                 />
-                Хеширование сложением
+                Хеширование делением
                 <br />
                 <input
                     type="radio"
@@ -54,29 +46,30 @@ function App() {
                 />
                 Хеширование умножением
             </div>
-            <h3>Метод преобразования</h3>
-            <div>
-                <input
-                    type="radio"
-                    radioGroup="hasher"
-                    checked={converter === additionConverter}
-                    onChange={e =>
-                        e.target.checked &&
-                        setConverter(() => additionConverter)
-                    }
-                />
-                Преобразование сложением
-                <br />
-                <input
-                    type="radio"
-                    radioGroup="hasher"
-                    checked={converter === xorConverter}
-                    onChange={e =>
-                        e.target.checked && setConverter(() => xorConverter)
-                    }
-                />
-                Преобразование XOR
-            </div>
+            <br />
+            <input
+                type="number"
+                min={2}
+                value={c}
+                max={10000}
+                onChange={e =>
+                    !isNaN(e.target.valueAsNumber) &&
+                    setC(Math.floor(e.target.valueAsNumber))
+                }
+            />
+            C
+            <br />
+            <input
+                type="number"
+                min={2}
+                value={d}
+                max={10000}
+                onChange={e =>
+                    !isNaN(e.target.valueAsNumber) &&
+                    setD(Math.floor(e.target.valueAsNumber))
+                }
+            />
+            D
             <br />
             <input
                 type="number"
@@ -104,39 +97,47 @@ function App() {
             <br />
             <button
                 onClick={() =>
-                    setResults(
-                        testHasher(hasher, converter, keyCount, tableSize)
-                    )
+                    setResults(testProber(hasher, c, d, keyCount, tableSize))
                 }
             >
                 Вычислить
             </button>
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={results} margin={{ bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis>
-                        <Label
-                            value="Адрес таблицы"
-                            position="bottom"
-                            offset={-5}
-                        />
-                    </XAxis>
-                    <YAxis allowDecimals={false} >
-                        <Label
-                            value="Кол-во коллизий"
-                            position="left"
-                            angle={270}
-                            offset={-30}
-                            style={{ textAnchor: 'middle' }}
-                        />
-                    </YAxis>
-                    <Bar dataKey={(v: number) => v || 0} fill="#2B2D42" />
-                </BarChart>
-            </ResponsiveContainer>
+            {results && (
+                <>
+                    {' '}
+                    (
+                    <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={results} margin={{ bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis>
+                                <Label
+                                    value="Номер ключа"
+                                    position="bottom"
+                                    offset={-5}
+                                />
+                            </XAxis>
+                            <YAxis allowDecimals={false}>
+                                <Label
+                                    value="Длина поиска"
+                                    position="left"
+                                    angle={270}
+                                    offset={-30}
+                                    style={{ textAnchor: 'middle' }}
+                                />
+                            </YAxis>
+                            <Bar
+                                dataKey={(v: number) => v || 0}
+                                fill="#2B2D42"
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                    )
+                    <span>
+                        Сумма длин: {results.reduce((acc, n) => acc + n)}
+                    </span>
+                </>
+            )}
             <br />
-            <span>
-                Всего коллизий: {totalCollisions}
-            </span>
         </div>
     )
 }
